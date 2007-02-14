@@ -1,0 +1,23 @@
+#summary Describes how the package translates code.
+
+= How It Works =
+
+The java_to_python script works as follows:
+
+  # given input file (or stdin) is read and passed to a lexer and parser
+  # parser generates an AST
+  # AST is passed to tree walker
+  # tree walker walks the AST, calling code to build a Source object
+  # Source object is written to output file (or stdout)
+
+Each of these is explained further below.
+
+1.  Input Read, Lexed, and Parsed
+
+2.  Parser Generates AST
+
+3.  AST Passed to Tree Walker
+
+4.  Tree Walker Walks AST to Build Source Object
+
+5.  Source Object Written to Output
