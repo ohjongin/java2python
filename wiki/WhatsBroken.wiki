@@ -1,10 +1,8 @@
 #summary What's known to not work at all.
 
-= What's Broken =
-
   * do statement (fixable)
   * super constructor calls (fixable)
   * break statement with label
   * continue statement with label
-  * BSR_ASSIGN
-  * BSR
+  * unsigned shift right (>>>) 
+  * unsigned shift right assign (>>>=)
