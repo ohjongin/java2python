@@ -2,7 +2,7 @@
 
 = What Works =
 
-  * class definitions
+  * class definitions, inner class definitions
   * method definitions
   * most expressions (see WhatsBroken)
   * if statements, for statements, while statements
