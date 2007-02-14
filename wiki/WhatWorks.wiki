@@ -1,7 +1,5 @@
 #summary What's known to work correctly or almost correctly.
 
-= What Works =
-
   * class definitions, inner class definitions
   * method definitions
   * most expressions (see WhatsBroken)
