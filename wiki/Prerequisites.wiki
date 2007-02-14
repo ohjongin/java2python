@@ -1,3 +1,5 @@
+#summary Software required to use the package.
+
 = Prerequisites =
 
 java2python requires the following to work:
