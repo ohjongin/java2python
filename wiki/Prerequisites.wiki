@@ -1,8 +1,8 @@
 #summary Software required to use the package.
 
-= Prerequisites =
-
-java2python requires the following to work:
+To translate code, java2python requires the following:
 
   * [http://www.python.org/ python] [http://www.python.org/download/releases/2.5/ 2.5] or newer
   * [http://www.antlr.org/ antlr] [http://www.antlr.org/download.html 2.7.x] (3.x series untested)
+
+Output code requires python 2.5, and does not require ANTLR.
