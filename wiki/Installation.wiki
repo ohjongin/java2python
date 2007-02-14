@@ -1,0 +1,5 @@
+#summary How to install the package, either from release or from repository.
+
+= Release Installation =
+
+= SVN Installation =
