@@ -102,12 +102,11 @@ returns [typ]
 
 
 modifiers [block, mod=None]
-    :   #(MODIFIERS (mod = modifier[block]
+    :   #(MODIFIERS (mod = modifier[block])*)
         {
         if mod:
             block.addModifier(mod)
-        })*
-        )
+        }
     ;
 
 
@@ -215,9 +214,6 @@ method_def [block]
             method_head[meth]
             (statement_list[meth])?
         )
-        {
-        meth.type = typ
-        }
     ;
 
 
