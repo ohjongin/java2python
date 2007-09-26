@@ -1,6 +1,6 @@
 #summary What's known to not work at all.
 
-  * do statement (fixable)
+  * ~~do statement (fixable)~~ fixed
   * super constructor calls (fixable)
   * break statement with label; bare break statements okay
   * continue statement with label; bare continue statements okay
