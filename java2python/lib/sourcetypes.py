@@ -192,6 +192,8 @@ class Source:
         @keyparam force=False, if True, always add to set
         @return None
         """
+        if not isinstance(var, Variable):
+            var = Variable(var)
         if force or (var.name and self.isClass):
             self.variables.append(var)
 
