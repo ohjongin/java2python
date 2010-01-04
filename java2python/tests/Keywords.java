@@ -1,43 +1,38 @@
-import junit.framework.*;
+public class Keywords  {
+    public static void main(String[] args) {
+	String and = "this is and";
+	System.out.println(and == "this is and" ? 1 : 0);
 
-public class Keywords extends TestCase {
-    public static String None = "this is None";
-    public static String and = "this is and";
+	String del = "this is del";
+	System.out.println(del == "this is del" ? 1 : 0);
 
-    public void testKeywords() {
-        String and = "this is and";
-        Assert.assertEquals(and, "this is and");        
-        Assert.assertEquals(Keywords.and, "this is and");        
+	String elif = "this is elif";
+	System.out.println(elif == "this is elif" ? 1 : 0);
 
-        String del = "this is del";
-        Assert.assertEquals(del, "this is del");
+	String from = "this is from";
+	System.out.println(from == "this is from" ? 1 : 0);
 
-        String elif = "this is elif";
-        Assert.assertEquals(elif, "this is elif");
+	String in = "this is in";
+	System.out.println(in == "this is in" ? 1 : 0);
 
-        String from = "this is from";
-        Assert.assertEquals(from, "this is from");
+	String is = "this is is";
+	System.out.println(is == "this is is" ? 1 : 0);
 
-        String in = "this is in";
-        Assert.assertEquals(in, "this is in");
+	String not = "this is not";
+	System.out.println(not == "this is not" ? 1 : 0);
 
-        String is = "this is is";
-        Assert.assertEquals(is, "this is is");
+	String or = "this is or";
+	System.out.println(or == "this is or" ? 1 : 0);
 
-        String not = "this is not";
-        Assert.assertEquals(not, "this is not");
+	String print = "this is print";
+	System.out.println(print == "this is print" ? 1 : 0);
 
-        String or = "this is or";
-        Assert.assertEquals(or, "this is or");
+	String str = "this is str";
+	System.out.println(str == "this is str" ? 1 : 0);
 
-        String print = "this is print";
-        Assert.assertEquals(print, "this is print");
-
-        String str = "this is str";
-        Assert.assertEquals(str, "this is str");
-
-        String None = "this is None";
-        Assert.assertEquals(None, "this is None");
-        Assert.assertEquals(Keywords.None, "this is None");
+	String None = "this is None";
+	System.out.println(None == "this is None" ? 1 : 0);
     }
+
+
 }

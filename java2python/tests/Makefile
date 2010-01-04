@@ -1,16 +1,23 @@
-PYTHONPATH=../../:.
-CLASSPATH:=.:/usr/share/junit/lib/junit.jar
+PYTHONPATH=..
+## CLASSPATH=.
 
-PYOBJS=Loops.py AssignInExpr.py EmptyArray.py Switches.py ClassMember.py \
-	FloatFix.py Keywords.py ClassInit.py SuperCtorTest.py
-JAVAOBJS=Loops AssignInExpr EmptyArray Switches ClassMember FloatFix Keywords \
-	ClassInit SuperCtorTest
+java_sources := $(wildcard *.java)
+py_sources := $(addsuffix .py, $(notdir $(basename $(wildcard *.java))))
 
-all: python-test
 
-python-test: $(PYOBJS)
+.SILENT: clean
+.PHONY: all $(java_sources) $(python_sources) clean X
 
-java-test: $(JAVAOBJS)
+all: package_1 $(java_sources)
+
+package_1:
+	cd Package1 && ../../bin/j2py -i Class1.java  -o Class1.py
+
+$(java_sources):
+	@javac $@  && ../bin/j2py -i $@ -o $(basename $@).py -c testconfig
+	@chmod u+x $(basename $@).py
+	@bash ./compare_outputs.sh "java -ea $(basename $@)" "python $(basename $@).py" "$@" && rm "$(basename $@).py" "$(basename $@).class"
+
 
 %.py: %.java testconfig.py
 	../bin/j2py -i $< -o $@ -c testconfig
@@ -18,8 +25,10 @@ java-test: $(JAVAOBJS)
 
 %: %.java
 	javac $<
-	java junit.textui.TestRunner $@
+	java $@
 
 clean:
-	rm -f $(PYOBJS)
-	rm -f *.class *.pyc
+	rm -f *.class *.pyc $(py_sources)
+
+parser:
+	cd ../parser && make
