@@ -1,113 +1,175 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import compiler
-import optparse
-import os.path
+
 import sys
+from collections import defaultdict
+from logging import _levelNames as logLevels, exception, warning, info, basicConfig
+from optparse import Option, OptionParser, OptionValueError
+from os.path import basename, splitext
 from time import time
 
-from java2python.lib.lexer import Lexer
-from java2python.lib.parser import Parser
-from java2python.lib.walker import Walker
-from java2python.lib.sourcetypes import Module, set_config
+from java2python.block import walkAST, Module
+from java2python.lib.colortools import colors
+from java2python.lib.transform import buildAST
 
 
-try:
-    import psyco
-except (ImportError, ):
-    pass
-else:
-    psyco.full()
+version = '0.5'
 
 
-def transform(options):
-    lexer_args = [options.inputfile, ] if options.inputfile else []
-    L = Lexer(*lexer_args)
-    P = Parser(L)
-    W = Walker()
+def isWindows():
+    return sys.platform.startswith('win')
 
-    comp_start = start = time()
+
+def badLogLevel(name, value):
+    msg = 'option %s: invalid loglevel: %r'
+    raise OptionValueError(msg % (name, value))
+
+
+def checkLogLevel(option, opt, value):
     try:
-        P.compilationUnit()
-    except (Exception, ), exc:
-       print '*** exception while parsing:'
-       print exc
-       return 1
-    comp_finish = time()
+        lvl = int(value)
+    except (ValueError, ):
+        name = value.upper()
+        if name not in logLevels:
+            badLogLevel(opt, value)
+        lvl = logLevels[name]
+    else:
+        if lvl not in logLevels:
+            badLogLevel(opt, value)
+    return lvl
 
-    ast_start = time()
-    ast = P.getAST()
-    ast_finish = time()
-    if not ast:
-       print '*** error: no AST generated.'
-       return 2
+
+class LocalOption(Option):
+    TYPES = Option.TYPES + ('loglevel', )
+    TYPE_CHECKER = Option.TYPE_CHECKER.copy()
+    TYPE_CHECKER['loglevel'] = checkLogLevel
+
+
+def main(options):
+    timed = defaultdict(time)
+    timed['overall']
+
+    configs = options.configs
+    if options.includedefaults:
+        configs.insert(0, 'java2python.config.default')
 
     filein = fileout = filedefault = '-'
-    if options.inputfile:
-        filein = os.path.basename(options.inputfile)
-    if options.outputfile:
-        fileout = os.path.basename(options.outputfile)
+    if options.inputfile and not isinstance(options.inputfile, file):
+	filein = options.inputfile
+    if options.outputfile and not isinstance(options.outputfile, file):
+	fileout = basename(options.outputfile)
     elif fileout != filedefault:
-        fileout = '%s.py' % (os.path.splitext(filein)[0])
+	fileout = '%s.py' % (splitext(filein)[0])
 
-    if fileout == filedefault:
-        output = sys.stdout
+    try:
+	if filein != '-':
+	    source = open(filein).read()
+	else:
+	    source = sys.stdin.read()
+    except (IOError, ), exc:
+        code, msg = exc.args[0:2]
+        print 'IOError: %s.' % (msg, )
+        return code
+
+    timed['comp']
+    try:
+	tree = buildAST(source)
+    except (Exception, ), exc:
+        exception('exception while parsing')
+        return 1
+    timed['comp_finish']
+
+    module = Module()
+    module.name = splitext(basename(filein))[0] if filein != '-' else '<stdin>'
+    timed['xform']
+    walkAST(tree, module)
+    timed['xform_finish']
+
+    timed['encode']
+    source = unicode(module)
+    timed['encode_finish']
+    timed['overall_finish']
+
+    if options.javaast:
+	tree.dump(sys.stderr)
+	print >> sys.stderr
+
+    if options.pytree:
+	module.dumpRepr(sys.stderr)
+	print >> sys.stderr
+
+    if not options.skipsource:
+	if fileout == filedefault:
+	    output = sys.stdout
+	else:
+	    output = open(fileout, 'w')
+	module.name = splitext(filein)[0] if filein != '-' else '<stdin>'
+	print >> output, source
+
+    try:
+        compile(source, '<string>', 'exec')
+    except (SyntaxError, ), ex:
+        warning('Generated source has invalid syntax.')
     else:
-        output = open(fileout, 'w')
+        info('Generated source has valid syntax.')
 
-    walk_start = time()
-    set_config(options.configs, options.includedefaults)
-    M = Module(filein, fileout)
-    W.walk(ast, M)
-    source = str(M)
-    print >> output, source
-    walk_finish = time()
-
-    if options.syntaxcheck:
-        try:
-            compiler.parse(source)
-        except (SyntaxError, ), ex:
-            msg = "## ERR:  %s" % (ex, )
-        else:
-            msg = '## INFO: generated source has valid syntax.'
-        print >> sys.stderr, msg
-
-    finish = time()
-    if options.timerun:
-        print >> sys.stderr, "## INFO: parser comp unit time: %.4f" % (comp_finish - comp_start)
-        print >> sys.stderr, "## INFO: ast get time: %.4f" % (ast_finish - ast_start)
-        print >> sys.stderr, "## INFO: walk and generate time: %.4f" % (walk_finish - walk_start)
-        print >> sys.stderr, "## INFO: total time: %.4f" % (finish - start)
+    info('Parse:     %.4f seconds', timed['comp_finish'] - timed['comp'])
+    info('Transform: %.4f seconds', timed['xform_finish'] - timed['xform'])
+    info('Encode:    %.4f seconds', timed['encode_finish'] - timed['encode'])
+    info('Total:     %.4f seconds', timed['overall_finish'] - timed['overall'])
     return 0
 
 
-def cli_options(argv):
-    parser = optparse.OptionParser(version='%prog 0.2')
+def config(argv):
+    parser = OptionParser(option_class=LocalOption,
+                          version='%prog ' + version)
     parser.add_option('-i', '--input', dest='inputfile',
-                      help='read INPUTFILE',
-                      metavar='INPUTFILE', default=None)
+		      help='Read from INPUTFILE.  May use - for stdin.',
+		      metavar='INPUTFILE', default=None)
     parser.add_option('-o', '--output', dest='outputfile',
-                      help='write OUTPUTFILE',
-                      metavar='OUTPUTFILE', default=None)
+		      help='Write to OUTPUTFILE.  May use - for stdout.',
+		      metavar='OUTPUTFILE', default=None)
     parser.add_option('-c', '--config', dest='configs',
-                      help='use CONFIG (multiple allowed)',
-                      metavar='CONFIG', default=[],
-                      action='append')
+		      help='Use CONFIG module (not file).  May be repeated.',
+		      metavar='CONFIG', default=[],
+		      action='append')
     parser.add_option('-n', '--nodefaults', dest='includedefaults',
-                      help='ignore default configuration',
-                      default=True, action='store_false')
-    parser.add_option('-s', '--syntaxcheck', dest='syntaxcheck',
-                      help='Check source syntax after generation',
-                      default=False, action='store_true')
-    parser.add_option('-t', '--time', dest='timerun',
-                      help='Write processing time to stderr',
-                      default=False, action='store_true')
+		      help='Ignore default configuration module.',
+		      default=True, action='store_false')
+    parser.add_option('-l', '--loglevel', dest='loglevel',
+		      help='Set log level by name or value.',
+		      default='WARN', type='loglevel')
+    parser.add_option('-p', '--python-tree', dest='pytree',
+		      help='Print python object tree to stderr.',
+		      default=False, action='store_true')
+    parser.add_option('-j', '--java-ast', dest='javaast',
+		      help='Print java source AST tree to stderr.',
+		      default=False, action='store_true')
+    parser.add_option('-s', '--skip-source', dest='skipsource',
+		      help='Skip writing translated source; useful when printing trees',
+		      default=False, action='store_true')
+    parser.add_option('-r', '--nocolor', dest='nocolor',
+		      help='Disable color output.' +\
+  		          ('  No effect on Win OS.' if isWindows() else ''),
+		      default=False, action='store_true')
+
     options, args = parser.parse_args(argv)
     if len(args) > 2:
-        parser.error('Only one input file supported.')
-    return options, args
+	parser.error('Only one input file supported.')
+    elif len(args) == 2:
+	options.inputfile = args[1]
+    if options.inputfile == '-':
+        options.inputfile = sys.stdin
+    if options.outputfile == '-':
+        options.outputfile = sys.stdout
+    ## these next statements don't belong here, but this is as good a
+    ## place as any.
+    if isWindows() or options.nocolor:
+	colors.clear()
+    fmt = '# %(levelname)s %(funcName)s: %(message)s'
+    basicConfig(level=options.loglevel, format=fmt)
+    return options
+
 
 if __name__ == '__main__':
-    options, args = cli_options(sys.argv)
-    ret = transform(options)
-    sys.exit(ret)
+    sys.exit(main(config(sys.argv)))
